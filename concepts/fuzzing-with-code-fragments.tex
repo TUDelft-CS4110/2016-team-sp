@@ -1,0 +1,156 @@
+\textbf{The summary beneath is completely created from \cite{holler2012fuzzing}}
+\\
+\subsection{Introduction}
+Software security issues are risky and expensive. 
+Security testing employs a mix of techniques to find vulnerabilities in software. 
+One of these techniques is \textit{fuzz testing}---a process that automatically generates random data input. 
+
+The JavaScript interpreter is particularly prone to security issues. 
+Hence, one could assume the JavaScript interpreter would make a rewarding target for fuzz testing. The problem, however, is that fuzzed input to a JavaScript interpreter must follow the syntactic rules of JavaScript.
+To address this issue, fuzzing frameworks include strategies to model the structure of the desired input data.
+
+For JavaScript \textit{jsfunfuzz} is amongs the most popular fuzzing tools.
+The question is: Can we devise a \textit{generic} fuzz testing approach that nonetheless can exploit \textit{project-specific} knowledge?
+
+In this paper, we introduce a framework called \textit{LangFuzz} that allows black-box fuzz testing of engines based on a context-free grammar.
+To adapt to \textit{specific} targets, LangFuzz can use its grammar to learn \textit{code fragments} from a given \textit{code base}.
+
+The combination of fuzz testing based on a language grammar and reusing project-specific issue-related code fragments makes LangFuzz an effective tool for security testing.
+At the same time, the approach can generically handle arbitrary grammars, as long as they are weakly typed.
+
+The framework requires three basic input sources: \textit{a language grammar} to be able to parse and generate code artifacts, \textit{sample code} used to learn language fragments, and a \textit{test suite} used for code mutation.
+LangFuzz then generates new test cases using code mutation and code generation strategies before passing the generated test cases to a test driver executing the test case.
+
+\subsection{background}
+``Fuzz testing'' was introduced in 1972 by Purdom. 
+It is one of the first attempts to automatically test a parser using the grammar it is based on.
+We especially adapted Purdom's idea of the ``Shortest Terminal String Algorithm'' for LangFuzz.
+
+Most relevant for this paper are earlier studies on grammar-based fuzz testing and test generations for compiler and interpreters.
+\textit{CSmith} is a pure generator-based fuzzer generating C programs for testing compilers and is based on earlier work of the same authors and on the random C program generator published by Turner. In contrast to LangFuzz, \textit{CSmith} aims to target correctness bugs instaed of security bugs. \textit{CSmith} randomly uses productions from its built-in C grammar to create a program. In contrast to LangFuzz, their grammar has non-uniform probability annotations.
+This is reasonable when constructing a fuzzer for a specific language, but very difficult for a language independent approach as we are aiming for.
+
+\textit{Jsfunfuzz} is a black-box fuzzing tool for the JavaScript engine. \textit{Jsfunfuzz} not only searches for crashes but can also detect certain correctness errors by differential testing.
+Jsfunfuzz was the first JavaScript fuzzer that was publicly available and thus inspired LangFuzz. In contrast, LangFuzz does not specifically aim at a single language.
+Instead our approaches aim to be solely based on grammar and general language assumptions and to combine random input generation with code mutation.
+
+Mutation testing alone can miss a large amount of code due to missing variety in the original inputs.
+Still we believe that mutating code snippets is an important step that adds regression detection capabilities.
+
+LangFuzz is a pure black-box approach, requiring no source code or other knowledge of the tested interpreter.
+While we consider coverage to be an insufficient indicator for test quality in interpreters, such an extension may also prove valuable for LangFuzz.
+
+\subsection{Definitions}
+\textbf{Defect.} Within this paper, the term ``defect'' refers to errors in code that cause abnormal termination only.
+All other software defects will be disregarded, although such defects might be detected under certain circumstances.
+
+\textbf{Grammar.} In this paper, the term ``grammar'' refers to context-free grammars.
+
+\textbf{Interpreter.} An ``interpreter'' in the sense of this paper is any software system that receives a program in source code form and then executes it.
+
+\subsection{How LangFuzz works}
+\textit{Generative} approaches try to create new random input, possibility using certain constraints or rules.
+\textit{Mutative} approaches try to derive new testing inputs from existing data by randomly modifying it. 
+LangFuzz makes use of both approaches but mutation is the primary technique. A purely generative design would likely fail due to certain semantic rules not being respected.
+Mutation, however allows us to learn and reuse existing semantic context.
+
+In the learning phase, we process a certain set of sample input files using a parser for the given language.
+The parser will allow us to separate the input file into \textit{code fragments} which are essentially examples for non-terminals in the grammar.
+Given a large codebase, we can build up a \textit{fragment pool} consisting of expansions for all kinds of non-terminal symbols.
+For mutation, a single target file is processed again using the parser. This time, we randomly pick some of the fragments we saw during parsing and replace them with other fragments of the same type.
+These code fragments might of course be semantically invalid or less useful without the context that surrounded them originally.
+
+Using the mutation process described in the previous section, we can process the whole test suite file by file, first learning fragments from it and then creating executable mutants based on the original tests.
+
+With our mutation approach, we can only use those code fragments as replacements that have learned from our code base before.
+
+Using a language grammar, it is natural to generate fragments by \textit{random walk} over the tree of possible expansion series. But performing a random walk with uniform probabilities is not guaranteed to terminate. However, terminating the walk without completing all expansions might result in a syntactically invalid output.
+
+To overcome these problems, we will use an algorithm that performs the generation in a \textit{breath-first} manner.
+
+During mutation, we can use learned and generated code fragments.
+
+As LangFuzz does not aim to semantically understand a specific language, we can only perform corrections based on \textit{generic} semantic assumptions.
+
+LangFuzz only needs to know which non-terminal in the grammar constitutes an identifier in order to be able to statically extract known identifiers from the program and replace identifiers in the new fragment.
+
+Some languages contain identifiers that can be used without declaring them.
+
+The only way to identify such global objects within LangFuzz is to require a list of these objects as (optional) argument.
+
+Typically, LangFuzz starts with a \textit{learning phase} where the given sample code is parsed using the supplied language grammar, thereby learning code fragments.
+
+Then the tool starts the actual working phase:
+\begin{enumerate}
+    \item From the next test to be mutated, several fragments are randomly selected for replacement.
+    \item As a single fragment can be considered as multiple types, we randomly pick one of the possible interpretations for each of those fragments.
+    \item Finally, the mutated test is executed and its result is checked.
+\end{enumerate}
+
+In the learning and mutation phase, we parse the given source code. For this purpose, LangFuzz contains a parser subsystem such that concrete parsers for different languages can be added.
+The parser is first used to learn fragments from the given code base which LangFuzz then memorizes as a token stream.
+We can mutate directly on the cached token stream.
+
+The code generation step uses the stepwise expansion algorithm to generate a code fragment.
+However, because LangFuzz is a proof-of-concept, this subsystem only understands a subset of the ANTLR grammar syntax and certain features that are only required for parsing.
+LangFuzz uses further simplifications internally to make the algorithm easier.
+
+With these simplifications done, the grammar only consists of rules for which each alternative is only a sequence of terminals and non-terminals.
+In case our stepwise expansion contains one or more synthesized rules, we replace those by their minimal expansion.
+All other remaining non-terminals are replaced by learned code fragments as described earlier.
+
+After code generation, the fragment replacement code adjusts the new fragment to fit its new environment.
+For this purpose, LangFuzz searches the remaining test for available identifiers and maps the identifiers in the new fragment to exisiting ones.
+
+In order to be able to run a mutated test, LangFuzz must be able to run the test with its proper \textit{test harness} which contains definitions required for the test.
+LangFuzz implements this logic in a test suite class which can be derived and adjusted easily for different test frameworks.
+
+LangFuzz uses a \textit{persistent} shell: A small JavaScript program called the \textit{driver} is started together with the test harness.
+LangFuzz monitors each persistent shell and records all input to it for later reproduction.
+The test driver is language dependent and needs to be adapted for other languages.
+
+Although the original motivation to use persistent shells was to increase test throughput it has an important side-effect. It increased the number of defects detected.
+
+To determine which individual tests are relevant for failure reproduction we use the \textit{delta debugging algorithm} and the \textit{delta tool} to filter out irrelevant test cases.
+
+LangFuzz contains a large amount of adjustable parameters.
+Please note that all default values are chosen empirically.
+We tried to use reasonable values but cannot guarantee that these values deliver the best performance.
+
+\subsection{Evaluation}
+The external validation compares LangFuzz to the state of the art in JavaScript fuzzing.
+The internal validation compares the two fragment replacement strategies used within LangFuzz. 
+Finally, we conducted a field study to check whether LangFuzz is actually up to the task to 
+detect real defects in current state of the art JavaScrtipt engines.
+
+LangFuzz bases its testing strategy solely on the grammar, existing programs and a very low amount of additional language-dependent information.
+The use of existing programs like previous regression tests allows LangFuzz to profit from previously detected defects.
+However, LangFuzz lacks a semantic background on the language which lowers the chances to obtain sane programs and produce test cases that trigger a high amount of interaction between individual parts of the program.
+
+\textit{LangFuzz and jsfunfuzz detect different defects (overlap of 15\%) and thus should be used complementary to each other.}
+
+\textit{A generic grammar-based fuzzer like LangFuzz can be 53\% as effective as a language-specific fuzzer like jsfunfuzz.}
+
+\textit{The combination of code mutation and code generation detects defects not detected by either internal approach alone. Combingin bot approaches makes LangFuzz succesful.}
+
+\textit{LangFuzz detected 164 real world defects in popular JavaScript engines within four months, including 31 security related defects. On PHP, LangFuzz detected 20 defects within 14 days.}
+
+\textit{Adapting LangFuzz to test different languages is easy: provide language grammar and integrate tests. Adding language dependent information is not required, but highly recommended.}
+
+\subsection{Threats to Validity}
+We cannot generalize that LangFuzz will be able to detect defects in other interpreters for different languages.
+
+Running LangFuzz and jsfunfuzz on different targets or testing windows might change comparison results.
+
+Setups with less test cases or biased test suites might decrease langFuzz's performance.
+
+Choosing different time limits might impact the experimental results.
+
+For most experiments, we report the number of defects found.
+Some of the reported bugs might be duplicates.
+Duplicates should be eliminated to prevent bias.
+
+\subsection{Conclusion}
+Fuzz testing is easy to apply, but needs language and project-specific knowledge to be most effective.
+LangFuzz is an approach to fuzz testing that can easily be adapted to new languages and to new projects.
+We recommend our approach for simple and effective automated testing of processors of complex input, including compilers and interpreters.

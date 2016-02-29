@@ -1,0 +1,19 @@
+\textbf{The summary beneath is completely created from \cite{godefroid2012sage}}
+\\
+
+Hackers find security vulnerabilities in software products using two primary methods. The first is \textit{code inspection of binaries}. The second is \textit{blackbox fuzzing}, a form of blackbox random testing, which randomly mutates well-formed program inputs and then tests the program with those modified inputs.
+Although blackbox fuzzing can be remarkably effective, its limitations are well known: blackbox fuzzing usually provides low code coverage and can miss security bugs.
+
+An alternative was developed: \textit{whitebox fuzzing}. It builds upon recent advances in systematic dynamic test generation and extends its scope from unit testing to whole-program security testing.
+Whitebox fuzzing consists of \textit{symbolically executing} the program under test \textit{dynamically}, gathering constraints on inputs from conditional branches encountered along the execution.
+
+In theory, systematic dynamic test generation can lead to full program path coverage, that is, \textit{program verification}. In practice, however, the search is typically incomplete both because the number of execution, constraint generation, and constraint solving can be imprecise due to complex program statements, calls to external operating system and library functions, and large numbers of constraints that cannot all be solved perfectly in a reasonable amount of time.
+
+Whitebox fuzzing was first implemented in the tool \textit{SAGE (Scalable Automated Guided Execution)}. SAGE implements a novel directed-search algorithm called \textit{generational search}, that maximizes the number of new input tests generated from each symbolic execution.
+
+SAGE uses several optimizations that are crucial for dealing with huge execution traces.
+\textit{Symbolic-expression caching} ensures that structurally equivalent symbolic terms are mapped to the same physical object; \textit{unrelated constraint elimination} reduces the size of constraint solver queries by removing the constraints that do not share symbolic variables with the negated constraint; \textit{local constraint caching} skips a constraint if it has already been added to the path constraint; \textit{flip count limit} establishes the maximum number of times a constraint generated from a particular program branch can be flipped.
+
+Building a system such as SAGE poses many other challenges: how to recover from imprecision in symbolic execution, how to check many properties together efficiently, how to leverage grammars for complex input formats, how to deal with path explosion, how to reason precisely about pointers, how to deal with floating-point instructions and input-dependent loops.
+
+SAGE combines and extends program analysis testing, verification, model checking, and automated theorem-proving techniques that have been developed over many years.

@@ -1,0 +1,49 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel} %English hyphenation
+\usepackage{amsmath} %Mathematical stuff
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+%Hyperreferences in the document. (e.g. \ref is clickable)
+\usepackage{hyperref}
+\usepackage[plain]{fancyref}
+
+% No indentation
+% \setlength{\parindent}{0pt}
+
+\title{Summary Fuzzing and Concolic Testing}
+\author{Sander Liebens \\ 4207750 \and Patrick Brand \\ 4330676}
+\date{February 2016}
+
+\begin{document}
+
+\maketitle
+
+% summary complete
+\input{summary-symbolic}
+
+%\newpage \newpage
+%
+%\section{Symbolic Execution}
+%\input{symbolic}
+%
+%\section{SAGE: Whitebox Fuzzing for Security Testing}
+%\input{sage}
+%
+%\section{Fuzzing with Code Fragments}
+%\input{fuzzing-with-code-fragments}
+%
+%\section{Grammar-based Whitebox Fuzzing}
+%\input{grammar}
+%
+%\section{Evaluating Initial Inputs for Concolic Testing}
+%\input{eval-init-inputs}
+%
+%\section{Automated Whitebox Fuzz Testing}
+%\input{auto-whitebox-fuzz-testing}
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

@@ -1,0 +1,124 @@
+\textbf{The summary beneath is completely created from \cite{godefroid2008automated}}
+\\
+
+Fuzz testing is a form of \textit{blackbox random} testing which randomly mutates well-formed inputs and tests the program on the resulting data. 
+In some cases, \textit{grammars} are used to generate the well-formed inputs, which also allows encoding application-specific knowledge and test heuristics. 
+Although fuzz testing can be remarkably effective, the limitations of blackbox testing approaches are well-known.
+In the security context, these limitations mean that potentially serious security bugs, such as buffer overflows, may be missed because the code that con- tains the bug is not even exercised.
+
+We propose a conceptually simple but different approach of \textit{whitebox fuzz testing}.
+Starting with a fixed input, our algorithm symbolically executes the program, gathering input constraints from conditional statements encountered along the way. 
+The collected constraints are then systematically negated and solved with a constraint solver, yielding new inputs that exercise different execution paths in the program. This process is repeated using a novel search algorithm with a coverage-maximizing heuristic designed to find defects as fast as possible.
+This allows us to exercise and test additional code for security bugs, even without specific knowledge of the input format. Further- more, this approach automatically discovers and tests ``corner cases''.
+
+In practice, however, the search is typically incomplete both because the number of execution paths in the program under test is huge and because symbolic execution, constraint generation, and constraint solving are necessarily impre- cise.
+
+
+This problem is typical of random testing: it is difficult to generate input values that will drive the program through all its possible execution paths.
+In contrast, \textit{whitebox dynamic test generation} it consists in executing the program starting with some initial inputs, performing a dynamic symbolic execution to collect constraints on inputs gathered from predicates in branch statements along the ex- ecution, and then using a constraint solver to infer variants of the previous inputs in order to steer the next executions of the program towards alternative program branches. 
+This process is repeated until a given specific program statement or path is executed, or until all (or many) feasible program paths of the program are exercised 
+\textbf{Limitations}
+\textbf{Path explosion:} systematically executing all feasible program paths does not scale to large, realistic programs. Path explosion can be alleviated by performing dynamic test generation \textit{compositionally}, by testing functions in isolation, encoding test results as \textit{function summaries} expressed using function input preconditions and output post- conditions, and then re-using those summaries when testing higher-level functions.
+
+\textbf{Imperfect symbolic execution:} symbolic execution of large programs is bound to be imprecise due to complex program statements (pointer manipulations, arithmetic op- erations, etc.) and calls to operating-system and library functions that are hard or impossible to reason about sym- bolically with good enough precision at a reasonable cost. Whenever symbolic execution is not possible, concrete val- ues can be used to simplify constraints and carry on with a simplified, partial symbolic execution.
+Whenever an actual execution path does not match the program path predicted by symbolic execution for a given input vector, we say that a \textit{divergence} has occurred.
+
+\textbf{Generation Search}
+We now present a new search algorithm that is designed to address these fundamental practical limitations.
+\begin{enumerate}
+    \item it is designed to systematically yet partially explore the state spaces of large applications executed with large inputs and with very deep paths.
+    \item it maximizes the number of new tests generated from each symbolic execution while avoiding any redundancy in the search.
+    \item it uses heuristics to maximize code coverage as quickly as possible.
+    \item it is resilient to divergences: whenever divergences occur, the search is able to recover and continue.
+\end{enumerate}
+
+\textbf{3 The Sage System} \textbf{3.1 System Architecture}
+SAGE performs a generational search by repeating four different types of tasks. 
+The Tester task implements the function Run\&Check by executing a program under test on a test input and looking for unusual events such as access violation exceptions and extreme memory consumption. 
+The subsequent tasks proceed only if the Tester task did not encounter any such errors. 
+If Tester detects an error, it saves the test case and performs automated triage.
+
+The Tracer task runs the target program on the same input file again, this time recording a log of the run which will be used by the following tasks to replay the program execution offline.
+
+The CoverageCollector task replays the recorded execution to compute which basic blocks were executed during the run. SAGE uses this information to implement the function Score discussed in the previous section.
+
+Lastly, the SymbolicExecutor task implements the function ExpandExecution by replaying the recorded execution once again, this time to collect input- related constraints and generate new inputs using the con- straint solver Disolver.
+Both the CoverageCollector and SymbolicExecutor tasks are built on top of the trace replay framework TruScan.
+TruScan offers several features that substantially simplify symbolic execution.
+
+\textbf{3.2 trace-based x86 Constraint Generation}
+First, instead of a source-based instrumen- tation, SAGE adopts a machine-code-based approach for three main reasons:
+\textbf{Multitude of languages and build processes.}
+\textbf{Compiler and post-build transformations.} 
+By performing symbolic execution on the binary code that actually ships, SAGE makes it possible to catch bugs not only in the target program but also in the compilation and post- processing tools, such as code obfuscators and basic block transformers, that may introduce subtle differences between the semantics of the source and the final product.
+\textbf{Unavailability of source.} 
+It might be difficult to obtain source code of third-party components, or even components from different groups of the same organization.
+SAGE avoids these issues by working at the machine-code level.
+
+Second, instead of an online instrumentation, SAGE adopts an \textit{offline trace-based} constraint generation. 
+With online generation, constraints are generated as the program is executed either by statically injected instrumentation code or with the help of dynamic binary instrumentation tools.
+SAGE adopts offline trace-based constraint generation for two reasons. 
+First, a single program may involve a large number of binary components some of which may be protected by the operating system or obfuscated, making it hard to replace them with instrumented versions. 
+Second, inherent nondeterminism in large target programs makes debugging online constraint generation difficult.
+
+\textbf{3.3 Constraint Generation}
+SAGE maintains the concrete and symbolic state of the program represented by a pair of stores associating every memory locations and registers to a byte-sized value and a symbolic tag respectively. 
+A symbolic tag is an expression representing either an input value or a function of some input value.
+SAGE defines a fresh symbolic variable for each non-constant symbolic tag.
+
+As SAGE replays the recorded program trace, it updates the concrete and symbolic stores according to the semantics of each visited instruction.
+
+In addition to performing symbolic tag propagation, SAGE also generates constraints on input values. Con- straints are relations over \textit{symbolic variables}.
+
+When the algorithm encounters an input-dependent con- ditional jump, it creates a constraint modeling the outcome of the branch and adds it to the path constraint composed of the constraints encountered so far.
+
+\textbf{3.4 Constraint Optimization}
+SAGE employs a number of optimization techniques whose goal is to improve the speed and memory usage of constraint generation: \textit{tag caching} ensures that structurally equivalent tags are mapped to the same physical object; 
+\textit{unrelated constraint elimination} reduces the size of constraint solver queries by removing the constraints which do not share symbolic variables with the negated constraint; 
+\textit{local constraint caching} skips a constraint if it has already been added to the path constraint; 
+\textit{flip count limit} establishes the maximum number of times a constraint generated from a particular program instruction can be flipped; 
+\textit{concretization} reduces the symbolic tags involving bitwise and multi- plicative operators into their corresponding concrete values.
+
+The constraint subsumption optimization keeps track of the constraints generated from a given branch instruction.
+
+The subsumption optimization has a critical impact on many programs processing structured files.
+Without this optimization, SAGE runs out of memory and overwhelms the constraint solver with a huge number of redundant queries.
+
+\textbf{Symbolic execution is slow.} We measured the total amount of time spent performing symbolic execution during each search. 
+We observe that a single symbolic execution task is many times slower than testing or tracing a program.
+\textbf{Generational search is better than depth-first search.}
+The limitations of depth-first search regarding code coverage are well known and are due to the search being too localized. 
+In contrast, a generational search explores alternative execution branches at all depths, simultaneously exploring all the layers of the program. 
+Finally, we saw that a much larger percentage of the search time is spent in symbolic execution for depth-first search than for generational search, because each test case requires a new symbolic execution task.
+
+\textbf{Divergences are common.}
+Our basic test setup did not measure divergences, so we ran several instrumented test cases to measure the divergence rate.
+In our experimental setup, we concretize all non-linear operations for efficiency, there are several x86 instructions we still do not emulate, we do not model sym- bolic dereferences of pointers, tracking symbolic variables may be incomplete, and we do not control all sources of nondeterminism as mentioned above. Despite this, SAGE was able to find many bugs in real applications.
+\textbf{Bogus files find few bugs.}
+Hence, the conventional wisdom that well-formed files should be used as a starting point for fuzz testing applies to our whitebox approach as well.
+\textbf{Different files find different bugs.}
+This suggests that using a wide variety of well-formed files is important for finding distinct bugs as each search is incomplete.
+\textbf{Bugs found are shallow.}
+or the Media 1 searches, crash finding searches seeded with well-formed files found all unique bugs within 4 generations.
+Most of the bugs found by these searches are \textit{shallow} — they are reach- able in a small number of generations.
+\textbf{No clear correlation between coverage and crashes.}
+\textbf{Effect of block coverage heuristic.}
+We observed only a weak trend in favor of the heuristic.
+
+Other extensions of fuzz testing have recently been developed. Most of those consist of using \textit{grammars} for representing sets of possible inputs.
+The use of input grammars makes it possible to encode \textit{application-specific knowledge} about the application under test, as well as \textit{testing guidelines} to favor testing specific areas of the input space compared to others.
+But writing gram- mars manually is tedious, expensive and scales poorly. In contrast, our whitebox fuzzing approach does not require an input grammar specification to be effective. 
+However, the experiments of the previous section highlight the importance of the initial seed file for a given search. Those seed files could be generated using grammars used for blackbox fuzzing to increase their diversity. 
+Also, note that blackbox fuzzing can generate and run new tests faster than whitebox fuzzing due to the cost of symbolic execution and constraint solving. 
+As a result, it may be able to expose new paths that would not be exercised with whitebox fuzzing because of the imprecision of symbolic execution.
+
+Static analysis is usually more efficient but less precise than dynamic analysis and testing, and their complementarity is well known.
+They can also be combined.
+\textit{Static test generation} consists of analyzing a program statically to attempt to compute input values to drive it along specific program paths \textit{without ever executing the program}.
+In contrast, \textit{dynamic} test generation extends static test generation with additional runtime information, and is therefore more general and powerful.
+Symbolic execution has also been proposed in the context of generating vulner- ability signatures, either statically or dynamically.
+
+We introduced a new search algorithm, the \textit{generational search}, for dynamic test generation that tolerates diver- gences and better leverages expensive symbolic execution tasks.
+We found that using a wide variety of well- formed input files is important for finding distinct bugs. We also observed that the number of generations explored is a better predictor than block coverage of whether a test case will find a unique new bug.
+Instead of running for a set number of hours, one could systematically search a small number of generations starting from an initial seed file and, once these test cases are exhausted, move on to a new seed file.
+Future work should experiment with this search method, possibly combining it with our block-coverage heuristic applied over different seed files to avoid re-exploring the same code multiple times.

@@ -1,0 +1,45 @@
+\textbf{The summary beneath is completely created from \cite{cadar2013symbolic}}
+\\
+
+A key goal of symbolic execution in the context of software testing is to explore as many different program paths as possible in a given amount of time, and for each path to (1) generate a set of concrete input values exercising that path, and (2) check for the presence of various kinds of errors. The ability to generate concrete test inputs is one of the major strengths of symbolic execution.
+Symbolic execution is not limited to finding generic errors, but can reason about higher-level program properties.
+
+The key idea behind symbolic execution is to use \textit{symbolic values}, instead of concrete data values as input and to represent the values of program variables as \textit{symbolic expressions} over the symbolic input values.
+
+The goal of symbolic execution is to generate a set of inputs so that all the execution paths depending on the symbolic input values - or as many as possible in a given time budget - can be explored exactly once by running the program on those inputs.
+Symbolic execution maintains a symbolic state $\sigma$, which maps variables to symbolic expressions, and a symbolic path constraint $PC$, which is a quantifier-free first-order formula over symbolic expressions.
+At the end of a symbolic execution along an execution path of the program, $PC$ is solved using a constraint solver to generate concrete input values. If the program is executed on these concrete input values, it will take exactly the same path as the symbolic execution and terminate in the same way.
+
+If a symbolic execution instance hits an exit statement or an error, the current instance of symbolic execution is terminated and a satisfying assignment to the current symbolic path constraint is generated, using an off-the-shelf constraint solver. The satisfying assignment forms the test inputs.
+Symbolic execution of code containing loops or recursion may result in an infinite number of paths if the termination condition for the loop or recursion is symbolic.
+
+A key disadvantage of classical symbolic execution is that it cannot generate an input if the symbolic path constraint along an execution path contains formulas that cannot be (efficiently) solved by a constraint solver.
+
+One of the key elements of modern symbolic execution techniques is their ability to mix concrete and symbolic execution.
+Directed Automated Random Testing (DART), or Concolic testing performs symbolic execution dynamically, while the program is executed on some concrete state and a symbolic state: the concrete state maps all variables to their concrete values while the symbolic state only maps variables that have non-concrete values.
+
+The \textit{Execution-Generated Testing (EGT)} approach works by making a distinction between the concrete and symbolic state of a program. To this end, EGT intermixes concrete and symbolic execution by dynamically checking before every operation if the values involved are all concrete. If so, the operation is executed just as in the original program. Otherwise, if at least one value is symbolic, the operation is performed symbolically, by updating the path condition for the current path.
+
+Concolic testing and EGT are two instances of modern symbolic execution techniques whose main advantage lies in their ability to mix concrete and symbolic execution.
+
+One of the key advantages in mixing concrete and symbolic execution is that imprecision caused by the interaction with external code or constraint solving timeouts can be alleviated using concrete values.
+Besides external code, imprecision in symbolic execution creeps in many other places and the use of concrete values allows dynamic sumbolic execution to recover from that imprecision, albeit at the cost of missing some execution paths, and thus sacrificing completeness. Dynamically symbolic execution's ability to simplify constraints using concrete values helps it generate test inputs for execution paths for which symbolic execution gets stuck, but this comes with a caveat: due to simplification, it could loose completeness, i.e. they may not be able to generate test inputs for some execution paths.
+
+One of the key challenges of symbolic execution is the huge number of programs paths in all but the smallest programs, which is usually exponential in the number of static branches in the code. As a result, given a fixed time budget, it is critical to explore the most relevant paths first.
+There are two key approaches that have been used to address this problem: heuristically prioritizing the exploration of the most promising paths, and using sound program analysis techniques to reduce the complexity of the path exploration.
+
+The key mechanism used by symbolic execution tools to prioritize path exploration is the use of search heuristics. Most heuristics focus on achieving high statement and branch coverage, but they could also be employed to optimize other desired criteria.
+More recently symbolic execution was combined with evolutionary search, in which a fitness function is used to drive the exploration of the input space.
+
+The other key way in which the path explosion problem has been approached was to use various ideas from program analysis and software verification to reduce the complexity of the path exploration in a sound way.
+Compositional techniques improve symbolic execution by caching and reusing the analysis of lower-level functions in subsequent computations.
+A related approach to avoid repeatedly exploring the same part of the code is to automatically prune redundant paths during exploration.
+
+Despite significant advances in constraint solving technology during the last few years, constraint solving continues to be one of the key bottlenecks in symbolic execution, where it often dominates runtime. In fact, one of the key reasons for which symbolic execution fails to scale on some programs is that their code is generation queries that are blowing up the solver.
+
+The vast majority of queries in symbolic execution are issued in order to determine the feasibility of taking a certain branch side. Thus one effective optimization is to remove from the path condition those constraints that are irrelevant in deciding the outcome of the current branch.
+
+One important characteristic of the constraint sets generated during symbolic execution is that they are expressed in terms of a fixed set of static branched from the program sourceode. For this reason, many paths have similar constraint sets, and thus allow for similar solutions; this fact can be exploited to improve the speed of constraint solving by reusing the results of previous similar queries.
+
+The precision with which program statements are translated into symbolic constraints can have a significant influence on the coverage achieved by symbolic execution, as well as on the scalability of constraint solving.
+The trade-off between precision and scalability should be determined in light of the code being analyzed, and the exact performance difference between different constraint solving theories. In addition, note that in dynamic symbolic execution, one can tune both scalability and precision by customizing the use of concrete values in symbolic formulas.

@@ -1,0 +1,93 @@
+\textbf{The summary beneath is completely created from \cite{wang2015evaluating}}
+\\
+\subsection{Introduction}
+Modern symbolic execution has garnered a lot of attentions in recent years as an effective technique for automatically generating high-coverage test cases and for finding unknown vulnerability in complex software applications.
+Concolic testing has been proposed as a variant of symbolic execution where symbolic execution is run simultaneously with concrete execution, that is, it first runs the target program on a concrete input, while gathering symbolic constraints from conditional statements encountered along the execution. 
+To test alternative paths, it systematically negates the collected constraints, and checks whether the new expression is satisfiable. If so, it generates a new input with the help of constraint solver.
+
+In concolic testing, symbolic execution process starts off with one concrete (fixed) input. The selection of the initial concrete input is one important factor that can influence the tool’s performance on bug detection.
+
+Previous work about concolic testing mostly focus on path selection problem and propose a variety of search heuristics.
+To the best of our knowledge, there is few work dealing with the initial input selection mechanism for concolic testing. Current concolic testing tools choose one or more well-formed concrete inputs randomly to start their workflow. 
+For each selected initial input, concolic testing tools usually run ten or dozens of hours to generate mutants of it to explore the target program.
+
+In this paper, we present an evaluation method to help concolic testing tool select initial inputs. 
+The key insight behind our evaluation method is that: if the concolic execution triggered by the initial input can cover more error-prone operations with different execution contexts, it is likely to detect more unknown bugs more quickly.
+
+During concolic testing, the selected initial input is used to generate new test cases to cover various paths of the target program.
+
+In order to alleviate the influence caused by unknown suspicious points in uncovered paths and improve the accuracy of the evaluation method, we present an initial input scoring algorithm which not only considers the suspicious points encountered in execution trace of candidate initial input, but also path conditions related to these suspicious points (conditions having data-flow or strict control-flow dependencies with suspicious points.
+
+Our work makes the following contributions:
+\begin{enumerate}
+    \item We introduce a new evaluation method to assess different candidate initial inputs and rank them according to their bug detection ability, which can help concolic testing tool select better initial inputs.
+    \item We implement the evaluation method in a new concolic testing tool and make experiments with four popular software systems in Linux.
+\end{enumerate}
+
+In this paper, we propose an initial input evaluation method for concolic testing, which leverages specified operations which are error-prone and taint propagation information gained by fine-grained dynamic taint analysis.
+
+For each candidate initial input, our evaluation method computes its ability to cover error-prone operations with different execution contexts to reflect its error detection ability. 
+First, we use fine-grained dynamic taint analysis to identify operations which are prone to errors, and bytes of the input that can flow into these suspicious points.
+Second, we compute the suspicious conditions coverage and unique suspicious points coverage.
+
+The input evaluation method ranks the candidate initial inputs mainly according to their suspicious conditions coverage scores. 
+We leave the unique suspicious points coverage score as an auxiliary mechanism for it may be affected by unexecuted suspicious points.
+
+\subsection{Definition and Identification of Suspicious Points and Suspicious Conditions}
+Specifically, we focus on the following two kinds of suspicious points. a), Dangerous functions: Security sensitive functions whose parameters can be affected by untrusted input data.
+
+When provided with a carefully crafted input, these dangerous functions are probably to trigger insufficient memory allocation, buffer overflow or integer overflow vulnerabilities. b), Dangerous instructions: Security sensitive instructions whose operands can be affected by untrusted input data.
+
+Typically, there are two kinds of dependence relationships for dynamic taint analysis to consider: data-flow and control-flow dependencies. 
+For data-flow dependencies, our dynamic taint analysis engine propagates the colors on data movement and arithmetic operations.
+Specifically, we implement strict control dependencies that track the most informative dependencies, such as direct comparisons between a tainted variable and a compile time constant.
+Finally, the dynamic taint analysis engine identifies the concerned security sensitive operations that can be affected by inputs as suspicious points, and logs all colors and input bytes involved in the the operands or parameters of suspicious points.
+
+To identify suspicious conditions, we check whether the variables involved in one path condition have the same colors as some identified suspicious points. If true, we classify this path condition as ``suspicious condition'', because the condition and suspicious point can be affected by the same input bytes.
+
+\subsection{Initial Input Evaluation}
+To reflect the bugs detection ability of different candidate initial inputs, we attempt to assess their ability to cover suspicious points with different contexts.
+
+In the scoring algorithm, for each candidate initial input, we assign each byte of the input a weight approximating its influence degree on suspicious points.
+If the bytes involved in the suspicious conditions have higher weights, the changes of those suspicious conditions may affect multiple suspicious points at the same time, and can create more opportunities to trigger vulnerabilities.
+Fine-grained dynamic taint analysis as mentioned in Section III-A is employed to analyze which bytes can affect this operation. 
+If exist, the corresponding items in array ByteWeight[byte] of those bytes will be updated.
+
+For each candidate, we evaluate its suspicious conditions coverage and unique suspicious points coverage in turn.
+In the unique suspicious points coverage evaluation procedure, each candidate input is evaluated based on simple statistics on the different suspicious points encountered in its execution trace. 
+Our current evaluation method treats different suspicious points equally.
+
+Finally, each candidate initial input in SeedsSet is assigned with unique suspicious points coverage score and suspicious condition coverage score.
+The more points the candidate cumulatively gets, the better coverage ability it has. 
+The overall rank of the candidate input is determined by both the unique suspicious point coverage scores and suspicious conditions coverage scores
+
+By default, for each candidate, our evaluation method assesses it by monitoring and analyzing its own execution trace.
+
+1) During input evaluation procedure, the initial input scoring algorithm not only considers the suspicious points themselves, but also suspicious conditions.
+If one suspicious point is not encountered in current execution trace because its check is evaluated to false, we can predicate its possible existence based on the guard suspicious conditions.
+If the execution covers more and complex suspicious conditions, it is more prone to errors than other straight-forward ones.
+
+
+2) We restrict the target candidate initial inputs to well- formed ones.
+In contrast, well-formed inputs usually result in similar processing procedure in the target program and their bug detection ability can be estimated based on their execution trace as analyzed in the motivating example section.
+
+\subsection{System Implementation}
+We add an Initial Input Evaluation Module on the top of the Concolic Testing Module, which can automatically evaluate and select initial inputs for it.
+After the evaluation, the candidates with higher scores can be selected within the given budget to start the following concolic testing process as its initial inputs.
+
+The Concolic Testing Module gets initial input from the Initial Input Evaluation Module and makes concolic testing starting with it.
+More specifically, we use the weight array from Input Scoring Algorithm module to direct the symbolic execution towards new and more changes of suspicious points.
+
+\subsection{Results}
+\textbf{Initial Inputs with higher suspicious conditions scores can detect more bugs.}
+
+\textbf{Initial Inputs with higher scores can detect bugs more quickly.}
+
+Note that there is one exception in our experiment.
+This case shows that our initial input evaluation method is not effective when the operations containing bugs don’t belong to suspicious points which we are focusing on.
+
+\textbf{Restricting target candidate initial inputs to wellformed ones is necessary}
+
+In this paper, we introduced an initial input evaluation method to help concolic testing tools select better initial inputs.
+First we define and classify suspicious points that are more error-prone. For each item in the candidate initial inputs set, CrashFinderHB uses fine- grained dynamic taint tracking to identify the input bytes that can affect the context of suspicious points.
+Moreover, two mechanisms are introduced in the algorithm to increase its accuracy. Finally, inputs having higher possibility to trigger bugs can be assigned higher scores.

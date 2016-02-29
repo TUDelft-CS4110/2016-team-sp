@@ -1,0 +1,34 @@
+What you will learn from reading the papers:
+\begin{list}
+    \item What are fuzzing and concolic testing methods, what bugs can you find using them?
+    \item When is it beneficial to test concolicly?
+\end{list}
+
+Suggested topics for presentation:
+\begin{list}
+    \item Fuzzing
+          \begin{list}
+              \item Introduction
+              \item Whitebox Fuzz Testing
+                    \item Explanation
+                    \item examples (SAGE)
+              \item Blackbox Fuzz Testing
+                    \item Explanation
+                    \item examples (LangFuzz)
+              \item When to use what?
+                    \item when blackbox more effective than whitebox and vise versa
+          \end{list}
+    
+    \item Concolic Testing
+          \begin{list}
+              \item Introduction
+              \item Concrete and Symbolic Testing
+              First run on concrete input -> gather symbolic constraints from conditional statements. -> Test alternative paths by systematically negating collected constraints -> check if new expression is satisfiable.
+              
+                    \begin{list}
+                        \item Concrete Input Selection
+                        \item Path selection problem. (Generational Search and others like ...)
+                    \end{list}
+              
+          \end{list}
+\end{list}
