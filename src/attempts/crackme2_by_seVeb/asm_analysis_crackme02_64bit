@@ -3,3 +3,4 @@ Main function:
 0x400d3f -> scanf for user input (serial)
  ...
 0x400d8d -> jump to this address when serial is invalid (call hades function)
+0x400fce -> Place of the message: "your serial is invalid" in memory
