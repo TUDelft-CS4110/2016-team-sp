@@ -1,0 +1,7 @@
+gdb crackme02_64bit 
+start
+layout asm
+b *-adres-
+c (continue to breakpoint)
+ni (next instruction)
+info registers [registername]
