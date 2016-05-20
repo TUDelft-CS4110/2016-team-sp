@@ -5,3 +5,4 @@ b *-adres-
 c (continue to breakpoint)
 ni (next instruction)
 info registers [registername]
+x/s -adres- (print string format of address value)

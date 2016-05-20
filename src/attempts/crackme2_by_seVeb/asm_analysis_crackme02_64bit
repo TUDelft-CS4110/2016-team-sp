@@ -10,8 +10,5 @@ Main function:
 
 0x400fce -> Place of the message: "your serial is invalid" in memory
 
-da-1003-08X32-aa#4-da
-
-da-1003-08X325-da0000
-
-0x400acd
+Working key: da-1003-08X32-üa#-da
+üa# = 216 total ascii values. Any combined characters which add up to 216 work. e.g. 6666
