@@ -4,4 +4,14 @@ Main function:
  ...
 0x400d8d -> jump to this address when serial is invalid (call hades function)
 0x400d66 -> rax is string length at that point (pass if length = hex 15, dec 21)
+0x400d73 -> al is cryptical amount of letters and numbers (should equal hex 64, dec 100)
+
+0x400b52 -> da-1003... after that we jump to pepper for the 8th character
+
 0x400fce -> Place of the message: "your serial is invalid" in memory
+
+da-1003-08X32-aa#4-da
+
+da-1003-08X325-da0000
+
+0x400acd
