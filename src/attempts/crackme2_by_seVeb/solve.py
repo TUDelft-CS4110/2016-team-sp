@@ -5,7 +5,7 @@ import angr
 start_addr = 0x400CE7 # Start of Main function
 #find_addr = 0x400D77 # 2nd compare function requires d as first input
 #find_addr = 0x400b68 # Pepper get past second compare
-find_addr = 0x400aa4
+find_addr = 0x400E36
 avoid_addr = 0x400D8D # Start of hades function, when serial is invalid
 input_addr = 0x602100
 input_length = 21#0x15 # Derived from 0x400D66 where rax is string input_length
@@ -18,7 +18,7 @@ def extract_memory(state):
 def char(state, n):
     """Returns a symbolic BitVector and contrains it to printable chars for a given state."""
     vec = state.se.BVS('c{}'.format(n), 8, explicit_name=True)
-    return vec, state.se.And(vec >= ord(' '), vec <= ord('~'))
+    return vec, state.se.And(vec >= ord(' '), ord('~'))
 
 def main():
     project = angr.Project('crackme02_64bit')
@@ -30,6 +30,7 @@ def main():
         # the first command line argument is copied to INPUT_ADDR in memory
         # so we store the BitVectors for angr to manipulate
         state.memory.store(input_addr + i, c)
+        print cond
         state.add_constraints(cond)
         
     print('path and explorer')
