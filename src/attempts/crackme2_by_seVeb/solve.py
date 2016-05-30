@@ -6,15 +6,10 @@ start_addr = 0x400CE7 # Start of Main function
 find_addr = 0x400E36 # Random address near the end of the program
 avoid_addr = 0x400D8D # Start of hades function, when serial is invalid
 input_addr = 0x602100 # Address where user inputted license key is stored
-input_length = 21#0x15 # Derived from 0x400D66 where rax is string input_length
-
-
-def extract_memory(state):
-    """Convience method that returns the flag input memory."""
-    return state.se.any_str(state.memory.load(input_addr, input_length))
+input_length = 21 #0x15 # Derived from 0x400D66 where rax is string input_length
 
 def main():
-    project = angr.Project('crackme02_64bit')
+    project = angr.Project('crackme02_64bit') # Load crackme binary
     
     print "Initialize solver"
     special_conditions = []
@@ -31,7 +26,7 @@ def main():
         print "--"+str(constraint)
         
     print "Initialize explorer"
-    path = project.factory.path(state)
+    path = project.factory.path(state) # Load a path for the explorer to start with, initialize at beginning of main.
     print "-Path: "+str(path)
     print "-Find addr: "+str(hex(find_addr))
     print "-Avoid addr: "+str(hex(avoid_addr))
@@ -41,7 +36,8 @@ def main():
     explorer.run()
     
     print "Extract result from memory"
-    flag = extract_memory(explorer.found[0].state)
+    final_state = explorer.found[0].state
+    flag = final_state.se.any_str(state.memory.load(input_addr, input_length)) # Read the found serial from memory
     print "license key: "+str(flag)
 
     return flag
