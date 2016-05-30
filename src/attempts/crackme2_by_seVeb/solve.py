@@ -36,5 +36,5 @@ explorer.run()
 
 print "Extract result from memory"
 final_state = explorer.found[0].state
-flag = final_state.se.any_str(state.memory.load(input_addr, input_length)) # Read the found serial from memory
+flag = final_state.se.any_str(final_state.memory.load(input_addr, input_length)) # Read the found serial from memory
 print "license key: "+str(flag)
