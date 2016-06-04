@@ -19,10 +19,13 @@ for i in range(input_length):
     symb_vec = state.se.BVS("c"+str(i), 8, explicit_name=True) # Create a symbolic value for each character (8bits)
     constraint = state.se.And(symb_vec >= ord(' '), symb_vec <= ord('~')) # Each input character is between whitespace and ~
     if i >= 14 and i <= 17 :
-        constraint = state.se.And(symb_vec % 2 == 0, state.se.And(symb_vec >= ord(' '), symb_vec <= ord('~')))
+        special_conditions.append(symb_vec)
     state.memory.store(input_addr + i, symb_vec) # Put the symbolic value at the location of the character of the 'input string' 
     state.add_constraints(constraint) # Add constraint to the symbolic execution engine
     print "--"+str(constraint)
+constraint = (special_conditions[0] + special_conditions[1] + special_conditions[2] + special_conditions[3]) % 2 == 0
+state.add_constraints(constraint)
+print "--"+str(constraint)
     
 print "Initialize explorer"
 path = project.factory.path(state) # Load a path for the explorer to start with, initialize at beginning of main.
